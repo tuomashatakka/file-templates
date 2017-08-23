@@ -1,15 +1,20 @@
 {
-  "name": "file-templates",
+  "name": "file-browser",
   "main": "./src/index.js",
   "version": "0.0.0",
   "description": "...",
   "keywords": [
-    "linter-ui",
-    "dock",
     "panel",
-    "linter",
     "layout",
-    "filter"
+    "files",
+    "browse",
+    "fs",
+    "filesystem",
+    "explorer",
+    "finder",
+    "browse",
+    "opener",
+    "preview"
   ],
   "repository": "https://github.com/tuomashatakka/linter-ui-docks",
   "license": "MIT",
