@@ -1,9 +1,9 @@
 'use babel'
 
 import { templateManager } from '../templates'
-import { handleCommandKeys, resolveIcon, toggleMarkerClass } from '../utils'
+import { resolveIcon } from '../utils'
 import { placeholderQuery } from '../constants'
-import { Range, CompositeDisposable } from 'atom'
+import { CompositeDisposable } from 'atom'
 import { basename, extname } from 'path'
 import TemplateVariableAssignmentPanel from '../views/TemplateVariableAssignmentPanel'
 import TemplateVariableMarker from './TemplateVariableMarker'
@@ -17,7 +17,7 @@ export default class Template {
     this.consumedMarkers  = []
     this.extension        = extname(path)
     this.name             = basename(path)
-    this.icon             = resolveIcon({ icon })
+    this.icon             = resolveIcon({ icon: this.extension ? 'file' : 'file-directory' })
     this.path             = path
   }
 
@@ -26,7 +26,7 @@ export default class Template {
   }
 
   get file () {
-    return templateManager().get(this.path)
+    return templateManager().getFile(this.path)
   }
 
   get content () {
@@ -80,9 +80,6 @@ export default class Template {
   }
 
   populate () {
-
-    let iterator    = this.editor.buffer.getFirstPosition()
-    let endPosition = this.editor.buffer.getEndPosition()
     let component   = TemplateVariableAssignmentPanel.create()
     this.markers    = []
 
@@ -163,8 +160,7 @@ export default class Template {
 
   toString () {
     let f = this.file
-    if (!f)
-      return ''
+    if (!f) return ''
     return f.readSync()
   }
 

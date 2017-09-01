@@ -34,32 +34,31 @@ const List = ({ items, select, displayToggleButton=true }) => {
 
   const toggleButton = displayToggleButton ?
     <button
-     className='btn btn-sm icon icon-chevron-right expanded'
+     className='btn btn-default'
      onClick={toggleNext}
-     style={{
-       fontSize: '8px',
-       margin: '0 8px 0 0'
-     }}>
+    >
+      <span className=" icon icon-chevron-right" />
       Use a template
     </button>
     : null
 
-  return <div className='file-templates-list select-list expanded'>
+  return <div className='file-templates-list expanded'>
 
     {toggleButton}
 
-    <ol className='list-group' style={style}>
+    <ol className='select-list list-group' style={style}>
 
       {items.map(item => {
-        let { name, selected, icon: ico } = item
-        let iconElement = <i className={ico ? `icon icon-${ico}` :icon(item)} />
-        let labelElement = <span className='title'>{item.name}</span>
-        let props = {
-          key:       name,
-          onClick:   () => select(item),
-          className: [ 'list-item', selected() ? ' selected' : '', ].join(' ') }
 
-        return <li {...props}>
+        let { name: key, selected, icon: ico } = item
+        let iconElement   = <i className={ico ? `icon icon-${ico}` : icon(item)} />
+        let labelElement  = <span className='title'>{key}</span>
+
+        selected = typeof selected === 'function' ? selected(item) : selected || false
+        let className = [ 'list-item', selected ? ' selected' : '', ].join(' ')
+        let onClick = () => select(item)
+
+        return <li key={key} onClick={onClick} className={className}>
           {iconElement}
           {labelElement}
         </li>
