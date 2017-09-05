@@ -1,6 +1,5 @@
 'use babel'
 
-import React from 'react'
 import { CompositeDisposable } from 'atom'
 import Dialog from './views/NewFileDialog'
 import SettingsPanel from './views/SettingsTemplatePanel'
@@ -104,14 +103,12 @@ export default {
     })
 
     const changeTabSubscription = atom.workspace.observePaneItems(item => {
-      console.info(item.constructor.name, item.constructor.name !== 'SettingsView')
       if (item.constructor.name !== 'SettingsView')
         return
       let name = 'File Templates'
       let icon = 'file-directory'
       let panel = SettingsPanel.create({ name, icon })
       // element.innerHTML = '<h3>' + title + '</h3>'
-      console.log(panel)
       item.addCorePanel(panel.name, panel.icon, () => panel)
     })
 
