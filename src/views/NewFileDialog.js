@@ -104,6 +104,10 @@ export default class Dialog {
     return this.input.text
   }
 
+  get absoluteValue () {
+    return this.input.getFullPath()
+  }
+
   addError (err) {
     this.errors.push(err)
     this.component.setState({ errors: this.errors })
@@ -111,7 +115,7 @@ export default class Dialog {
 
   submit () {
     this.errors = []
-    let path = this.value
+    let path = this.absoluteValue
 
     if (path && path[0] !== sep)
       path = join(atom.project.getPaths()[0], path)
@@ -158,10 +162,8 @@ export default class Dialog {
 
   getTemplatesByExtension (ext='') {
     let items = []
-    console.log('extension updated', ext)
     if (ext.length > 1)
       items = this.templates.getByExtension(ext)
-    console.log('extension updated', ...items)
     this.input.updateList(...items)
   }
 

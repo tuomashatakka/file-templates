@@ -55,7 +55,12 @@ export default class PathField {
   cancel   = () => this.emitter.emit('cancel')
 
   getFullPath () {
-    return this.path.join(sep) + this.text
+    let path = [ ...this.path, this.text ]
+      .filter(item => item.trim().length)
+      .join(sep)
+    if (!extname(path))
+      path += sep
+    return path
   }
 
   set text (text) {
@@ -114,11 +119,19 @@ export default class PathField {
       text = ''
     }
 
-    console.warn("updating path", this.path, text)
-
     const createPathFragment = (content) => {
       let el = document.createElement('span')
+      let index = this.breadcrumbs.children.length
+
       el.textContent = content
+      el.addEventListener('click', () => {
+        this.path.splice(index + 1)
+        Array
+          .from(this.breadcrumbs.children)
+          .forEach((item, n) => n > index ? item.remove() : null)
+        this.updatePath()
+      })
+
       this.breadcrumbs.appendChild(el)
     }
 
