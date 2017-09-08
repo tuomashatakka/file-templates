@@ -34,44 +34,34 @@ const List = ({ items, select, actions, displayToggleButton=true }) => {
 
   const toggleButton = displayToggleButton ?
     <button
-      className='btn btn-sm icon icon-chevron-right expanded'
-      onClick={toggleNext}
-      style={{
-        fontSize: '8px',
-        margin: '0 8px 0 0'
-      }}>
+     className='btn btn-default'
+     onClick={toggleNext}
+    >
+      <span className=" icon icon-chevron-right" />
       Use a template
     </button>
     : null
 
-  return <div className='file-templates-list select-list expanded'>
+  return <div className='file-templates-list expanded'>
 
     {toggleButton}
 
-    <ol className='list-group' style={style}>
+    <ol className='select-list list-group' style={style}>
+
       {items.map(item => {
 
-        let { name, selected, icon: ico } = item
-        let selectedClass = typeof selected === 'function' ? (selected() ? ' selected' : '') : selected ? ' selected' : ''
-        let props = {
-          key: name,
-          className: `list-item${selectedClass}`
-        }
+        let { name: key, selected, icon: ico } = item
+        let iconElement   = <i className={ico ? `icon icon-${ico}` : icon(item)} />
+        let labelElement  = <span className='title'>{key}</span>
 
-          return <li {...props}>
-            <a onClick={() => select(item)}>
-              <i className={ico ? `icon icon-${ico}` : ''}
-                style={{paddingLeft: '1rem'}} />
+        selected = typeof selected === 'function' ? selected(item) : selected || false
+        let className = [ 'list-item', selected ? ' selected' : '', ].join(' ')
+        let onClick = () => select(item)
 
-              <span className='title' style={{paddingRight: '1rem'}}>
-                {item.name}
-              </span>
-
-            </a>
-            
-            {actions ? actions.map((btn, n) => btn(item, n)) : null}
-
-          </li>
+        return <li key={key} onClick={onClick} className={className}>
+          {iconElement}
+          {labelElement}
+        </li>
       })}
 
     </ol>

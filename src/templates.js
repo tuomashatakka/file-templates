@@ -1,8 +1,7 @@
 'use babel'
 
 import { Directory, File } from 'atom'
-import { join, basename, extname } from 'path'
-import { statSync } from 'fs'
+import { join, extname } from 'path'
 import Template from './models/Template'
 import { TMPL_DIR_NAME } from './constants'
 
@@ -33,42 +32,55 @@ export const getNullTemplateItem = selected => ({
   selected: (typeof selected === 'function' ? selected() : selected) || false
 })
 
+
+let _entries, _cached
+
+
 export default class TemplateInterface {
 
   constructor () {
-    this.path = atom
-      .getStorageFolder()
-      .pathForKey(TMPL_DIR_NAME)
-  }
-
-  set path (path) {
-    this.directory = new Directory(path)
-    this.directory
-      .exists()
-      .then(exists => !exists ? this.directory.create() : null)
-  }
-
-  get path () {
-    return this.directory.getPath()
+    const dirname   = 'file-templates'
+    const path      = join(atom.getStorageFolder().getPath(), dirname)
+    this.directory  = getDirectory(path)
   }
 
   getTemplate (name) {
-    let item = this.get(name)
+    let item = this.getFile(name)
     if (!item)
       return new Template()
     return new Template(item)
   }
 
-  getAll () {
-    // TODO: Decorate output
-    return formatEntries(this.directory.getEntriesSync())
+  get entries () {
+    if (!_entries)
+      _entries = this.directory.getEntriesSync()
+    return [ ..._entries ]
+  }
+
+  get all () {
+    if (!_cached)
+      _cached = this.entries.map(templateForEntry)
+    return [ ..._cached ]
+  }
+
+  getByPosition (n) {
+    n = Math.min(Math.max(n, 0), this.all.length - 1)
+    return this.all[n]
+  }
+
+
+  getByExtension (ext) {
+    if (ext)
+      return this.all.filter(item => item.path.endsWith(ext))
+    return []
   }
 
   has (fname) {
-    return (this.directory.contains(fname))
+    return this.entries.find(template =>
+      template.path.endsWith(fname))
   }
 
-  get (fname) {
+  getFile (fname) {
     if (!fname)
       return null
     if (this.has(fname))
@@ -100,6 +112,25 @@ export default class TemplateInterface {
     this.getAll().map(entry => entry.name)
 
 }
+
+
+function templateForEntry (entry) {
+  let { path } = entry
+  let icon     = [ 'file' ]
+
+  if (extname(path))
+    icon.push('directory')
+  icon = icon.join('-')
+  return new Template({ path, icon })
+}
+
+function getDirectory (path) {
+  let dir = new Directory(path)
+  dir.exists().then(exists =>
+    !exists && dir.create())
+  return dir
+}
+
 
 let templateInterface
 export const templateManager = () =>

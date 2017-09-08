@@ -1,8 +1,9 @@
 'use babel'
 import React from 'react'
 import { render } from 'react-dom'
-import { Disposable, Directory, TextEditor } from 'atom'
-import { join, sep, basename, dirname } from 'path'
+import { Disposable, CompositeDisposable, Directory } from 'atom'
+import { join, sep } from 'path'
+import PathField from '../models/PathField'
 import { existsSync } from 'fs'
 import { getTemplates, getNullTemplateItem, compareTemplates } from '../templates'
 import Template from '../models/Template'
@@ -17,20 +18,44 @@ export default class Dialog extends BaseDialog {
   constructor (name) {
     super({ name })
 
-    this.insertEditor = this.insertEditor.bind(this)
-    this.rootPath = '/'
+    this.errors        = []
+    this.name          = name
+    this.className     = `filepath-prompt modal-${this.name}`
+    this.subscriptions = new CompositeDisposable()
+
+    this.templates.add('index_with_content.js', 'kikki hiir on [[pelle]]')
     this.render()
 
+    const navigateTemplatesList = direction => {
+      if (direction === 'down')
+        this.selectNextTemplate()
+      else if (direction === 'up')
+        this.selectPreviousTemplate()
+    }
+
+    let input = this.input
+    input.onNavigate(navigateTemplatesList)
+    input.onSubmit(this.submit.bind(this))
+    input.onCancel(this.hide.bind(this))
+    input.onDidUpdateSuggestions(this.render.bind(this))
+    input.onDidChangeExtension(this.getTemplatesByExtension.bind(this))
+  }
+
+  getTitle = () => this.name
+
+  show () {
+    this.errors = []
+    this.selectedTemplate = null
+    this.panel.show()
+  }
+
+  hide () {
+    this.panel.hide()
   }
 
   destroy () {
+    this.input.destroy()
     this.subscriptions.dispose()
-  }
-
-  get className () {
-    if (!this.__classname)
-      this.__classname = `filepath-prompt modal-${this.name}`
-    return this.__classname
   }
 
   get input () {
@@ -40,44 +65,48 @@ export default class Dialog extends BaseDialog {
   get panel () {
     if (this._panel)
       return this._panel
+    let { className, getTitle } = this
+    let item       = document.createElement('article')
+    let disposable = new Disposable(() => this._panel.destroy())
 
-    let { className, getTitle, item, } = this
-    let panel   = atom.workspace.addModalPanel({ item, getTitle, className, })
-    let editor  = new TextEditor({ mini: true })
-    this._panel = panel
-    panel.input = editor
-    panel.hide()
-    this.subscriptions.add(new Disposable(() => panel.destroy()))
-    return panel
+    this._panel = atom.workspace.addModalPanel({ item, getTitle, className, })
+    this._panel.input = new PathField()
+    this._panel.hide()
+    this.subscriptions.add(disposable)
+    return this._panel
   }
 
   set value (text) {
-
-    let rel       = basename(text)
-    this.rootPath = dirname(text)
-
-    this.render()
-    this.input.setText(rel)
-    this.input.moveToBeginningOfLine()
-    this.input.selectToEndOfWord()
+    this.input.path = []
+    this.input.text = dir(text)
   }
 
   get value () {
-    return this.input.getText().trim()
+    return this.input.text
+  }
+
+  get absoluteValue () {
+    return this.input.getFullPath()
+  }
+
+  addError (err) {
+    this.errors.push(err)
+    this.component.setState({ errors: this.errors })
   }
 
   submit () {
     this.errors = []
-    let path = join(this.rootPath, this.value)
-    // if (path && path[0] !== sep)
-    //   path = join(atom.project.getPaths()[0], path)
+    let path = this.absoluteValue
+
+    if (path && path[0] !== sep)
+      path = join(atom.project.getPaths()[0], path)
 
     try {
 
       // If the given path already exists, do not overwrite it
       // but rather display an error.
       if (existsSync(path)) {
-        this.error = `File ${this.value} already exists (${path})`
+        this.addError(`${path} already exists`)
         if (!path.endsWith(sep))
           atom.workspace.open(path)
       }
@@ -107,87 +136,89 @@ export default class Dialog extends BaseDialog {
     }
 
     catch({ message }) {
-      this.error = message
+      this.addError(message)
     }
   }
 
-  show () {
-    this.errors = []
-    this.selectedTemplate = null
-    this.panel.show()
-  }
-
-  select (item) {
-    this.selectedTemplate = item ? new Template(item) : null
-    this.render()
-  }
-
-  insertEditor (host) {
-    host.appendChild(this.input.element)
-    this.input.element.focus()
-  }
-
-  isSelected = () =>
-    this.selectedTemplate &&
-    this.selectedTemplate.path &&
-    this.selectedTemplate.path.length
-
-  pageUp () {
-    let { templates } = this
-    let index = this.selectedTemplate ? templates.findIndex(item => this.selectedTemplate.path == item.path) : 0
-    if (index > 0)
-      this.select(templates[index - 1])
-  }
-
   get templates () {
-    return [ getNullTemplateItem(() => !this.isSelected()) ]
-      .concat(getTemplates()
-      .map(item => ({
-        ...item,
-        selected: () => compareTemplates(this.selectedTemplate, item)
-      })))
+    return templateManager()
   }
 
-  pageDown () {
-    let { templates } = this
-    let index = this.selectedTemplate ? templates.findIndex(item => this.selectedTemplate.path == item.path) : 0
-    if (index > -1 && index < templates.length - 1)
-      this.select(templates[index + 1])
+  getTemplatesByExtension (ext='') {
+    let items = []
+    if (ext.length > 1)
+      items = this.templates.getByExtension(ext)
+    this.input.updateList(...items)
+  }
+
+  get noTemplate () {
+    return {
+      name: 'No template',
+      icon: 'icon-x',
+      path: null,
+      type: null,
+      selected: !this._selectedTemplate ? true : false
+    }
+  }
+
+  get selectedTemplate () { return this._selectedTemplate || this.noTemplate }
+  set selectedTemplate (item) { this._selectedTemplate = item || null }
+
+  selectNextTemplate () {
+    let { path } = this.selectedTemplate
+    let pos = this.templates.all.findIndex(item => item.path == path)
+    if (pos === -1 && path)
+      return this.setTemplate(null)
+    return this.selectTemplateByPosition(pos + 1)
+  }
+
+  selectPreviousTemplate () {
+    let { path } = this.selectedTemplate
+    let pos = this.templates.all.findIndex(o => o.path == path)
+    if (pos < 1 || !path)
+      return this.setTemplate(null)
+    return this.selectTemplateByPosition(pos - 1)
+  }
+
+  selectTemplateByPosition (pos) {
+    let item = this.templates.getByPosition(pos)
+    return this.setTemplate(item)
+  }
+
+  setTemplate (item) {
+    if (!(item === null || item instanceof Template))
+      throw new TypeError(`Invalid argument passed to setTemplate function - function expected either null or a Template instance`)
+    this.selectedTemplate = item
+    this.render()
+    return item
+  }
+
+  get templatesList () {
+    let { noTemplate, templates } = this
+    let isSelected = item => Object.assign(item, { selected: item.path === this.selectedTemplate.path })
+    templates = templates.all.map(isSelected)
+    templates.unshift(noTemplate)
+    return templates
   }
 
   render () {
-
-    let { templates } = this
-
-
+    let onSelect = (item) => this.setTemplate(item)
     let buttons   = [
       { text: 'Cancel', action: () => this.hide() },
-      { text: 'Save', action: () => this.submit(), style: 'success' }]
+      { text: 'Save',   action: () => this.submit(), style: 'success' }
+    ]
 
     this.component = render(
       <DialogContents>
-        <section className='padded text-subtle'>
-          <span className='badge'>
-            <code>
-              {this.rootPath
-                .split('/')
-                .splice(1)
-                .map(o => <span className='breadcrumb'>{o}</span>)
-              }
-            </code>
-          </span>
-        </section>
-
-        <section ref={this.insertEditor}/>
-
+        {this.input.component}
         <Toolbar buttons={buttons} />
 
         <List
-          items={templates}
-          select={(item) => this.select(item)}
-        />
-
+          items={this.templatesList}
+          select={onSelect} />
       </DialogContents>,
-      this.item )
+      atom.views.getView(this.panel)
+    )
   }
+
 }

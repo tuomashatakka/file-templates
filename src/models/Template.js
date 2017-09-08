@@ -7,6 +7,8 @@ import { unlink } from 'fs'
 import { templateManager } from '../templates'
 import { resolveIcon } from '../utils'
 import { placeholderQuery } from '../constants'
+import { CompositeDisposable } from 'atom'
+import { basename, extname } from 'path'
 import TemplateVariableAssignmentPanel from '../views/TemplateVariableAssignmentPanel'
 import TemplateVariableMarker from './TemplateVariableMarker'
 
@@ -19,25 +21,9 @@ export default class Template {
     this.consumedMarkers  = []
     this.extension        = extname(path)
     this.name             = basename(path)
-    this.icon             = resolveIcon({ icon })
+    this.icon             = resolveIcon({ icon: this.extension ? 'file' : 'file-directory' })
     this.path             = path
     this.getConstantValue = this.getConstantValue.bind(this)
-  }
-
-
-
-  // Section: Variables & template variable providers
-
-  /**
-   * Get an object that contains the
-   * available runtime constants
-   * @method constants
-   * @return {object}  A list of the env constants in the current process
-   */
-  get constants () {
-    return {
-      ...process.env
-    }
   }
 
   /**
@@ -238,8 +224,7 @@ export default class Template {
    */
   toString () {
     let f = this.file
-    if (!f)
-      return ''
+    if (!f) return ''
     return f.readSync()
   }
 

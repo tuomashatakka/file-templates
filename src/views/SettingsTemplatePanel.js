@@ -7,17 +7,36 @@ import { CompositeDisposable } from 'atom'
 
 import { getTemplates } from '../templates'
 import SettingsGeneralPanel from './SettingsGeneralPanel'
+import { templateManager } from '../templates'
+import Dialog from './NewFileDialog'
 import List from './components/ListComponent'
 import Toolbar from './components/ToolbarComponent'
 
 
-const confirm = message => atom.confirm({
-    message,
-    buttons: {
-      'Yes': () => true,
-      'No':  () => false,
-    }
-  })
+let onModalBlur = modal => ({ clientX: x, clientY: y }) => {
+  // Assert click is inside boundaries
+  let { left, top, width, height } = modal.panel.getElement().getBoundingClientRect()
+  if (x < left + width &&
+      x > left &&
+      y < top + height &&
+      y > top)
+    return
+
+  // If the click is outside dialog, hide it
+  modal.hide()
+  document.removeEventListener('click', onModalBlur)
+}
+
+const onWillAddTemplate = () => {
+  const { templateManager } = require('../templates')
+  let uri     = templateManager().directory.path
+  let modal   = new Dialog('new-template')
+  modal.value = uri
+  document.addEventListener('click', onModalBlur(modal))
+  modal.show()
+}
+
+const REGEX = { VISIBLE: /display:(?:\s*)(block)/ig }
 
 
 export default class SettingsTemplatePanel extends Component {
@@ -58,8 +77,7 @@ export default class SettingsTemplatePanel extends Component {
   }
 
   render () {
-    let { templates } = this.state
-    let { toolbar }   = this.props
+    let templates = templateManager().all.map(item => item.selected = () => false)
 
     return (
 
@@ -69,34 +87,24 @@ export default class SettingsTemplatePanel extends Component {
           {this.name}
         </div>
 
-        <header>
-          <Toolbar buttons={toolbar} />
-          <h3>Template files</h3>
-        </header>
+        <button
+          onClick={onWillAddTemplate}
+          className='btn'>
+          <span className='icon icon-plus' /> Add template
+        </button>
+
+        {this.props.children}
+
+        <h2 className='block'>Template files</h2>
 
         <List
-          items={templates}
-          displayToggleButton={false}
-          select={item => atom.workspace.open(item.path)}
-          actions={[(item, key) =>
-            <i
-              key={key}
-              className='icon icon-x'
-              onClick={e => {
+         items={templates}
+         select={item => atom.workspace.open(item.path)}
+         displayToggleButton={false} />
 
-                e.preventDefault()
+       <h2 className='block'>Template constants</h2>
 
-                if (!confirm(`Delete ${item.name}?`))
-                  return false
-
-                item.template.remove()
-                this.setState({ templates: getTemplates() })
-                return false
-              }} />
-          ]}
-        />
-
-      </section>
+    </section>
 
     )
   }
