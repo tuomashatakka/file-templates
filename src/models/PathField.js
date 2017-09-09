@@ -1,6 +1,6 @@
 'use babel'
 import React from 'react'
-import { CompositeDisposable, Disposable, Emitter, TextEditor } from 'atom'
+import { CompositeDisposable, Emitter, TextEditor } from 'atom'
 import { extname, sep } from 'path'
 import self from 'autobind-decorator'
 import DisposableEvent from './DisposableEvent'
