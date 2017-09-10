@@ -19,22 +19,27 @@ export default class DialogContents extends Component {
 
     this.state = {
       errors: [],
+      listIsOpen: true,
     }
   }
 
   render () {
 
-    const { children } = this.props
+    let   { children } = this.props
     const { errors }   = this.state
     const errorsList   =
       <ul className='error-messages block padded'>
         {errors.map(li)}
       </ul>
 
+    console.log(children)
     return (
       <div className='dialog-contents'>
         {errorsList}
-        {children}
+        {children.map(c => {
+          c.props.listIsOpen = this.state.listIsOpen
+          return c
+        })}
       </div>
     )
   }

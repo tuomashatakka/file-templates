@@ -7,7 +7,9 @@ import DisposableEvent from './DisposableEvent'
 import List from '../views/components/ListComponent'
 
 const _sep      = /(?:([/\\]+))/
+const _parent   = /^([^\w]*?\.{2,})/
 const separator = new RegExp(_sep.source, 'g')
+const parent    = new RegExp(_parent.source)
 
 export default class PathField {
 
@@ -30,8 +32,6 @@ export default class PathField {
     }
 
     const onBackspace = (ev) => {
-      this.updatePath()
-      ev.preventDefault()
       return false
     }
 
@@ -43,10 +43,10 @@ export default class PathField {
       core('move-down', this.navigate.bind(this, 'down')),
       core('focus-next', this.navigate.bind(this, 'right')),
       core('focus-previous', this.navigate.bind(this, 'left')),
-      new DisposableEvent(this.element, 'keydown', ev =>
-        ev.key === 'Backspace'
-        && !this.text.length
-        && onBackspace(ev)),
+      new DisposableEvent(this.element, 'keydown', ev => {
+        if (ev.key === 'Backspace' && !this.text.length)
+          onBackspace(ev)
+      }),
     )
   }
 
@@ -173,9 +173,17 @@ export default class PathField {
     const match = content =>
       content.match(separator)
 
-    for (let { oldText, newText } of changes || [])
+    const matchUp = content =>
+      content.match(parent)
+
+    for (let { oldText, newText } of changes || []) {
+      if (matchUp(newText)) {
+        path()
+        break
+      }
       if (match(newText) && !match(oldText))
         path(text)
+    }
 
     if (this.extension !== extension)
       ext(extension)

@@ -7,8 +7,6 @@ import { unlink } from 'fs'
 import { templateManager } from '../templates'
 import { resolveIcon } from '../utils'
 import { placeholderQuery } from '../constants'
-import { CompositeDisposable } from 'atom'
-import { basename, extname } from 'path'
 import TemplateVariableAssignmentPanel from '../views/TemplateVariableAssignmentPanel'
 import TemplateVariableMarker from './TemplateVariableMarker'
 

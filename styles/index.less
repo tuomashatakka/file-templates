@@ -1,20 +1,42 @@
+@import "ui-variables";
 
 .filepath-prompt {
   min-width: 60vw
 }
 
 
-.path-field-container nav span::after {
-  content:        "/";
-  display:        inline-block;
-  padding:        0 0.3em;
-  position:       relative;
-  font-size:      2.2em;
-  font-weight:    200;
-  vertical-align: middle;
+.path-field-container nav {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+
+  span {
+    cursor: pointer;
+    padding: @component-padding @component-padding / 3;
+    border-radius: @component-border-radius;
+    transition: .2s color, .2s background-color;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size:      0.65em;
+  }
+
+  span:hover {
+    color: @input-text-color-active;
+    background-color: @button-background-color-hover;
+  }
+
+  span::after {
+    content:        "/";
+    display:        inline-block;
+    padding:        0 0 0 @component-padding / 3;
+    position:       relative;
+    font-size:      2.2em;
+    font-weight:    200;
+    vertical-align: middle;
+  }
 }
 
-.file-templates-list {
+atom-panel.modal .file-templates-list {
   @import "ui-variables";
   @duration: .4s;
 
@@ -41,14 +63,15 @@
     max-height: 50vh;
   }
 
-  .list-group {
+  ol.select-list.list-group {
     margin-top: @component-padding;
     align-self: stretch;
     opacity:    1;
     overflow:   auto;
+    max-height: 50vh !important;
     transition: @duration max-height ease, @duration opacity ease-out }
 
-  .list-group.hidden {
+  ol.select-list.list-group.collapsed {
     display:    block !important;
     opacity:    0;
     max-height: 0 !important }

@@ -30,23 +30,12 @@ const style = {
   // position: 'relative'
 }
 
-const List = ({ items, select, actions, displayToggleButton=true }) => {
+const List = ({ items, select, isOpen=true }) => {
 
-  const toggleButton = displayToggleButton ?
-    <button
-     className='btn btn-default'
-     onClick={toggleNext}
-    >
-      <span className=" icon icon-chevron-right" />
-      Use a template
-    </button>
-    : null
+  let openState = isOpen ? ' expanded' : ' collapsed'
+  return <div className={'file-templates-list' + openState}>
 
-  return <div className='file-templates-list expanded'>
-
-    {toggleButton}
-
-    <ol className='select-list list-group' style={style}>
+    <ol className={'select-list list-group' + openState} style={style}>
 
       {items.map(item => {
 

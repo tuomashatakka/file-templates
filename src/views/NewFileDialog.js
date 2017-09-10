@@ -5,6 +5,8 @@ import { Disposable, CompositeDisposable, Directory } from 'atom'
 import { join, sep } from 'path'
 import PathField from '../models/PathField'
 import { existsSync } from 'fs'
+import { dir } from '../utils'
+import { templateManager } from '../templates'
 import { getTemplates, getNullTemplateItem, compareTemplates } from '../templates'
 import Template from '../models/Template'
 import Toolbar from './components/ToolbarComponent'
@@ -204,8 +206,13 @@ export default class Dialog extends BaseDialog {
   render () {
     let onSelect = (item) => this.setTemplate(item)
     let buttons   = [
-      { text: 'Cancel', action: () => this.hide() },
-      { text: 'Save',   action: () => this.submit(), style: 'success' }
+      { text: 'Cancel',   action: () => this.hide() },
+      { text: 'Save',     action: () => this.submit(), style: 'success' },
+      { text: 'Template', action: () => {
+        this.listIsOpen = !this.listIsOpen
+        this.component.setState({ listIsOpen: this.listIsOpen })
+        this.render()
+      }, icon: 'chevron-right' }
     ]
 
     this.component = render(
@@ -214,6 +221,7 @@ export default class Dialog extends BaseDialog {
         <Toolbar buttons={buttons} />
 
         <List
+          isOpen={this.listIsOpen}
           items={this.templatesList}
           select={onSelect} />
       </DialogContents>,
