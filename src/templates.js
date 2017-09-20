@@ -19,7 +19,7 @@ const formatEntries = entries =>
   entries.map(formatTemplate)
 
 export const getTemplates = (filter=()=>true) =>
-  templateManager().getAll().filter(filter)
+  templateManager().all.filter(filter)
 
 export const compareTemplates = (a, b) =>
   a && b && a.path === b.path

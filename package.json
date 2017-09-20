@@ -75,5 +75,8 @@
         "version": "15.3.1"
       }
     }
+  },
+  "devDependencies": {
+    "flow-bin": "^0.54.1"
   }
 }
