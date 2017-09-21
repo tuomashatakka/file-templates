@@ -23,9 +23,9 @@
   },
   "dependencies": {
     "eslint": "^3.19.0",
-    "prop-types": "^15.5.8",
-    "react": "^15.5.4",
-    "react-dom": "^15.5.4"
+    "prop-types": "^15.5.10",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1"
   },
   "providedServices": {
     "linter-ui": {
@@ -37,11 +37,11 @@
   "eslintConfig": {
     "env": {
       "browser": true,
-      "node":    true
+      "node": true
     },
     "parserOptions": {
-      "ecmaVersion":  7,
-      "sourceType":   "module",
+      "ecmaVersion": 7,
+      "sourceType": "module",
       "ecmaFeatures": {
         "jsx": true
       }
