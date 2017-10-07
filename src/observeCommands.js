@@ -3,7 +3,7 @@
 import SettingsPanel from './views/SettingsTemplatePanel'
 import { CompositeDisposable } from 'atom'
 import { manager } from './models/TemplateManager'
-import { getSelection } from './utils'
+import { getSelection, stopFurtherDispatching } from './utils'
 import { openModal } from './ViewManager'
 
 let subscriptions
@@ -18,16 +18,21 @@ export const observeCommand = (namespace, callback) => {
   observedCommands.push(namespace)
   commands[namespace] = callback
   return atom.commands.onWillDispatch(
-    event => (-1 === observedCommands.indexOf(event.type)) ? null : callback(event))
+    event => {
+      let isRegistered = -1 !== observedCommands.indexOf(event.type)
+      if (isRegistered)  {
+        atom.notifications.addInfo('Halting the default dispatch execution')
+        return stopFurtherDispatching(callback(event))
+    }}
+  )
 }
 
 export const onWillAddNewFile = (e) => {
   let name  = 'new-file'
   let value = getSelection() || active.uri
-
   openModal({ name, value })
-  e.preventDefault()
-  e.stopPropagation()
+  atom.notifications.addInfo("onWillAddNewFile called with value " + value)
+  return e
 }
 
 
@@ -53,40 +58,42 @@ export const subscribe = () => {
 
 export const dispose = () => subscriptions.dispose()
 
-export const onChangeTab = () => atom.workspace.observeTextEditors((item) => {
-  if (item.isEmpty && !item.isEmpty())
-    active = {
-      el:    item.getElement(),
-      uri:   item.getURI ? item.getURI() : null,
-      save:  p => item.saveAs(p),
-      title: item.getTitle(),
-    }
-  else
-    return false
-
-})
-
-
-export const changeTabSubscription = () => atom.workspace.observePaneItems((item: any) => {
-  if (item.constructor.name !== 'SettingsView')
-    return
-  let name = 'File Templates'
-  let icon = 'file-directory'
-  let panel = SettingsPanel.create({
-    name,
-    icon,
-    toolbar: [
-      {
-        text:   'Add Template',
-        icon:   'plus',
-        style:  'info',
-        action: () => onWillAddNewTemplateFile(),
+export const onChangeTab = () =>
+  atom.workspace.observeTextEditors((item) => {
+    if (item.isEmpty && !item.isEmpty())
+      active = {
+        el:    item.getElement(),
+        uri:   item.getURI ? item.getURI() : null,
+        save:  p => item.saveAs(p),
+        title: item.getTitle(),
       }
-    ],
+    else
+      return false
+
   })
-  // element.innerHTML = '<h3>' + title + '</h3>'
-  item.addCorePanel(panel.name, panel.icon, () => panel)
-})
+
+
+export const changeTabSubscription = () =>
+  atom.workspace.observePaneItems((item: any) => {
+    if (item.constructor.name !== 'SettingsView')
+      return
+    let name = 'File Templates'
+    let icon = 'file-directory'
+    let panel = SettingsPanel.create({
+      name,
+      icon,
+      toolbar: [
+        {
+          text:   'Add Template',
+          icon:   'plus',
+          style:  'info',
+          action: () => onWillAddNewTemplateFile(),
+        }
+      ],
+    })
+    // element.innerHTML = '<h3>' + title + '</h3>'
+    item.addCorePanel(panel.name, panel.icon, () => panel)
+  })
 
 
 // this.subscriptions.add(onAddTab)

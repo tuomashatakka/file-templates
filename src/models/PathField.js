@@ -72,7 +72,7 @@ export default class PathField {
   }
 
   navigate = (direction: Direction) => this.emitter.emit('move', direction)
-  confirm  = () => this.emitter.emit('submit', this.getFullPath())
+  confirm  = () => this.emitter.emit('submit', this.serialize())
   cancel   = () => this.emitter.emit('cancel')
 
   getFullPath () {

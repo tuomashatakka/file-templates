@@ -32,7 +32,6 @@
     "react-dom": "16.0.0-alpha",
     "babel-eslint": "^8.0.0",
     "eslint-plugin-flow": "^2.29.1",
-    "eslint-plugin-react": "^7.3.0",
     "flow-bin": "^0.54.1"
   },
   "providedServices": {
@@ -43,50 +42,26 @@
     }
   },
   "eslintConfig": {
-    "env": {
-      "browser": true,
-      "node": true
-    },
-    "parserOptions": {
-      "ecmaVersion": 7,
-      "sourceType": "module",
-      "ecmaFeatures": {
-        "jsx": true
-      }
-    },
-    "globals": {
-      "Promise": true,
-      "Proxy": true,
-      "WeakMap": true,
-      "WeakSet": true,
-      "Map": true,
-      "Set": true,
-      "emit": true,
-      "atom": true,
-      "module": true,
-      "window": true,
-      "process": true,
-      "require": true,
-      "document": true,
-      "__dirname": true,
-      "__pathname": true
-    },
     "parser": "babel-eslint",
     "plugins": [
       "react",
-      "flow"
+      "flowtype"
     ],
     "extends": [
-      "eslint:recommended",
-      "plugin:react/recommended"
+      "@tuomashatakka",
+      "plugin:react/recommended",
+      "plugin:flowtype/recommended"
     ],
-    "rules": {},
-    "settings": {
-      "react": {
-        "pragma": "React",
-        "version": "16.0.0"
-      }
+    "rules": {
+      "complexity": ["warn", 5]
+    },
+    "globals": {
+      "atom": true
     }
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@tuomashatakka/eslint-config": "^0.1.3",
+    "eslint-plugin-flowtype": "^2.39.1",
+    "eslint-plugin-react": "^7.4.0"
+  }
 }

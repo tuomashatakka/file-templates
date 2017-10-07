@@ -34,7 +34,7 @@ export default class Dialog extends BaseDialog {
 
     let input = this.input
     input.onNavigate(navigateTemplatesList)
-    input.onSubmit(this.submit.bind(this))
+    // input.onSubmit(this.submit.bind(this))
     input.onCancel(this.hide.bind(this))
     input.onDidUpdateSuggestions(this.render.bind(this))
     input.onDidChangeExtension(this.getTemplatesByExtension.bind(this))
@@ -65,20 +65,6 @@ export default class Dialog extends BaseDialog {
     return this.panel.input
   }
 
-  get panel () {
-    if (this._panel)
-      return this._panel
-    let { className, getTitle } = this
-    let item       = document.createElement('article')
-    let disposable = new Disposable(() => this._panel.destroy())
-
-    this._panel = atom.workspace.addModalPanel({ item, getTitle, className, })
-    this._panel.input = new PathField()
-    this._panel.hide()
-    this.subscriptions.add(disposable)
-    return this._panel
-  }
-
   set value (text) {
     this.input.path = []
     this.input.text = dir(text)
@@ -88,65 +74,46 @@ export default class Dialog extends BaseDialog {
     return this.input.text
   }
 
-  get absoluteValue () {
-    return this.input.getFullPath()
-  }
-
   addError (err) {
     this.errors.push(err)
     this.component.setState({ errors: this.errors })
   }
 
-  async submit () {
+  submit () {
     this.errors = []
     let vn = this.input.serialize()
+    atom.notifications.addSuccess('Submitting the new file creation action')
 
-    let open = () => {
+    let createOrOpen = () => {
       if (vn.isFile())
         atom.workspace.open(vn.getRealPathSync())
-      else if (vn.isDirectory()) {
+      else if (vn.isDirectory())
         vn.create()
-        this.panel.hide()
-      }
     }
 
-    try {
-
-      // If the given path already exists, do not overwrite it
-      // but rather display an error.
-      if (vn.existsSync()) {
-        this.addError(`${vn.path} already exists`)
-        open()
-      }
-
-      // If the input ends with a path separator, create a new
-      // directory to the given location.
-      else if (vn.isDirectory()) {
-        open()
-      }
-
-      // If the input evaluates to a filename (it does not end
-      // with a separator character), open a new pane item for
-      // the given input as the path for the item. If a template
-      // is selected, apply it to the newly opened pane item.
-      else {
-        let resolver = atom.workspace.open(vn.path)
-        if (this.selectedTemplate) {
-          let editor = await resolver
-          this.selectedTemplate.apply(editor)
-          console.info("selectedTemplate", this.selectedTemplate)
-        }
-        this.panel.hide()
-      }
+    // If the given path already exists, do not overwrite it
+    // but rather display an error.
+    if (vn.existsSync()) {
+      this.addError(`${vn.path} already exists`)
+      createOrOpen()
     }
 
-    catch({ message }) {
-      this.addError(message)
+    // If the input ends with a path separator, create a new
+    // directory to the given location.
+    else if (vn.isDirectory()) {
+      createOrOpen()
     }
-  }
 
-  get templates () {
-    return manager
+    // If the input evaluates to a filename (it does not end
+    // with a separator character), open a new pane item for
+    // the given input as the path for the item. If a template
+    // is selected, apply it to the newly opened pane item.
+    else {
+      let resolver = atom.workspace.open(vn.path)
+      if (this.isTemplateSelected())
+        resolver.then(editor => this.selectedTemplate.apply(editor))
+    }
+    this.panel.hide()
   }
 
   getTemplatesByExtension (ext='') {
@@ -171,7 +138,7 @@ export default class Dialog extends BaseDialog {
 
   selectNextTemplate () {
     let { path } = this.selectedTemplate
-    let pos = manager.all.findIndex(item => item.path == path)
+    let pos = manager.all.findIndex(item => item.path === path)
     if (pos === -1 && path)
       return this.setTemplate(null)
     return this.selectTemplateByPosition(pos + 1)
@@ -179,7 +146,7 @@ export default class Dialog extends BaseDialog {
 
   selectPreviousTemplate () {
     let { path } = this.selectedTemplate
-    let pos = manager.all.findIndex(o => o.path == path)
+    let pos = manager.all.findIndex(o => o.path === path)
     if (pos < 1 || !path)
       return this.setTemplate(null)
     return this.selectTemplateByPosition(pos - 1)
@@ -192,18 +159,38 @@ export default class Dialog extends BaseDialog {
 
   setTemplate (item) {
     if (!(item === null || item instanceof Template))
-      throw new TypeError(`Invalid argument passed to setTemplate function - function expected either null or a Template instance`)
+      throw new TypeError(`Invalid argument passed to setTemplate function -
+        function expected either null or a Template instance`)
     this.selectedTemplate = item
     this.render()
     return item
   }
 
+  isTemplateSelected () {
+    return this.selectedTemplate && this.selectedTemplate.path ? true : false
+  }
+
   get templatesList () {
-    let { noTemplate, templates } = this
+    let { noTemplate } = this
     let isSelected = item => Object.assign(item, { selected: item.path === this.selectedTemplate.path })
-    templates = templates.all.map(isSelected)
+    let templates = manager.all.map(isSelected)
     templates.unshift(noTemplate)
     return templates
+  }
+
+  get panel () {
+    if (this._panel)
+      return this._panel
+
+    let { className, getTitle } = this
+    let item       = document.createElement('article')
+    let disposable = new Disposable(() => this._panel.destroy())
+
+    this._panel = atom.workspace.addModalPanel({ item, getTitle, className })
+    this._panel.hide()
+    this._panel.input = new PathField()
+    this.subscriptions.add(disposable)
+    return this._panel
   }
 
   render () {

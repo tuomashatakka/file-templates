@@ -14,6 +14,14 @@ export const getSelection = () => {
     : null
 }
 
+export function stopFurtherDispatching (event) {
+  if (event instanceof Event) {
+    event.stopImmediatePropagation()
+    event.preventDefault()
+  }
+  return false
+}
+
 
 export const isVisible = el =>
   el.getAttribute('style').search(IS_VISIBLE) > -1
