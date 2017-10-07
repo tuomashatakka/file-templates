@@ -5,12 +5,10 @@ import React, { Component } from 'react'
 import { render } from 'react-dom'
 import { CompositeDisposable } from 'atom'
 
-import { getTemplates } from '../templates'
+import { manager, getTemplates } from '../models/TemplateManager'
 import SettingsGeneralPanel from './SettingsGeneralPanel'
-import { templateManager } from '../templates'
 import Dialog from './NewFileDialog'
 import List from './components/ListComponent'
-import Toolbar from './components/ToolbarComponent'
 
 
 let onModalBlur = modal => ({ clientX: x, clientY: y }) => {
@@ -28,15 +26,14 @@ let onModalBlur = modal => ({ clientX: x, clientY: y }) => {
 }
 
 const onWillAddTemplate = () => {
-  const { templateManager } = require('../templates')
-  let uri     = templateManager().directory.path
+  let uri     = manager.directory.path
   let modal   = new Dialog('new-template')
   modal.value = uri
   document.addEventListener('click', onModalBlur(modal))
   modal.show()
 }
 
-const REGEX = { VISIBLE: /display:(?:\s*)(block)/ig }
+// const REGEX = { VISIBLE: /display:(?:\s*)(block)/ig }
 
 
 export default class SettingsTemplatePanel extends Component {
@@ -77,7 +74,7 @@ export default class SettingsTemplatePanel extends Component {
   }
 
   render () {
-    let templates = templateManager().all.map(item => item.selected = () => false)
+    let templates = manager.all.map(item => item.selected = () => false)
 
     return (
 

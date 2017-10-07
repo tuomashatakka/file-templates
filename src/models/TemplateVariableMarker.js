@@ -64,8 +64,9 @@ export default class TemplateVariableMarker {
 
     let rn = range || this.range
     let dt = {
-      invalidate: 'never',
-      maintainHistory: true }
+      invalidate: 'touch',
+      maintainHistory: true
+    }
 
     if (this.marker)
       this.clear()
@@ -83,7 +84,11 @@ export default class TemplateVariableMarker {
    * @method isValid
    * @return {Boolean}  `true` if the marker is valid, `false` otherwise
    */
-  isValid () { return this.marker ? this.marker.isValid() : false }
+  isValid () {
+    return this.marker
+      ? this.marker.isValid()
+      : false
+  }
 
   /**
    *

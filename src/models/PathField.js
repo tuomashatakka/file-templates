@@ -1,19 +1,36 @@
 'use babel'
+//@flow
+
+
+import {
+  CompositeDisposable, Disposable,
+  Directory, File, Emitter, TextEditor
+} from 'atom'
+
 import React from 'react'
-import { CompositeDisposable, Emitter, TextEditor } from 'atom'
-import { extname, sep } from 'path'
 import self from 'autobind-decorator'
+import { extname, sep } from 'path'
 import DisposableEvent from './DisposableEvent'
 import List from '../views/components/ListComponent'
-
+import type { Direction, UpdatePropertiesType } from '../../types/generic.type'
 const _sep      = /(?:([/\\]+))/
-const _parent   = /^([^\w]*?\.{2,})/
+const _parent   = /^([^.]*?\.{2,})/
 const separator = new RegExp(_sep.source, 'g')
 const parent    = new RegExp(_parent.source)
 
 export default class PathField {
 
-  constructor (path='') {
+  suggestions: Array<string>
+  path: Array<string>
+  extension: string
+
+  breadcrumbs: HTMLElement
+  editor: TextEditor
+  emitter: Emitter
+  subscriptions: CompositeDisposable
+
+
+  constructor (path: string = '') {
 
     this.subscriptions = new CompositeDisposable()
     this.editor        = new TextEditor({ mini: true })
@@ -21,36 +38,40 @@ export default class PathField {
     this.extension     = extname(path)
     this.path          = resolvePath(path)
 
-    const core = (name, handle, el) => {
+    const onBackspace = () => this.popPath()
+    const core = (name, handle: Function, el: HTMLElement) => {
       let element = el || this.element
-      let handler = (ev) => {
-        handle(ev)
-        // ev.preventDefault()
-        // return false
-      }
+      let handler = () => handle()
+      // ev.preventDefault()
+      // return false
       return new DisposableEvent(element, 'core:' + name, handler.bind(this))
     }
-
-    const onBackspace = (ev) => {
+    this.update()
+    let sub: Disposable = this.editor.onDidStopChanging.call(this.editor, this.update.bind(this))
+    let cnfrm = e => {
+      if (e)
+        e.preventDefault()
+      this.confirm()
       return false
     }
+    let observeBackspace = new DisposableEvent(this.element, 'keydown', ev => {
+      if (ev.key === 'Backspace' && !this.text.length)
+        onBackspace()
+    })
 
     this.subscriptions.add(
-      this.editor.onDidStopChanging(this.update.bind(this)),
+      sub,
       core('cancel', this.cancel),
-      core('confirm', this.confirm),
+      core('confirm', cnfrm),
       core('move-up', this.navigate.bind(this, 'up')),
       core('move-down', this.navigate.bind(this, 'down')),
       core('focus-next', this.navigate.bind(this, 'right')),
       core('focus-previous', this.navigate.bind(this, 'left')),
-      new DisposableEvent(this.element, 'keydown', ev => {
-        if (ev.key === 'Backspace' && !this.text.length)
-          onBackspace(ev)
-      }),
+      observeBackspace
     )
   }
 
-  navigate = (direction) => this.emitter.emit('move', direction)
+  navigate = (direction: Direction) => this.emitter.emit('move', direction)
   confirm  = () => this.emitter.emit('submit', this.getFullPath())
   cancel   = () => this.emitter.emit('cancel')
 
@@ -58,41 +79,48 @@ export default class PathField {
     let path = [ ...this.path, this.text ]
       .filter(item => item.trim().length)
       .join(sep)
-    if (!extname(path))
+    if (!(extname(path) || this.text.trim()))
       path += sep
     return path
   }
 
-  set text (text) {
+  serialize () {
+    let fullPath = atom.project.resolvePath(this.getFullPath())
+    if (fullPath.endsWith(sep))
+      return new Directory(fullPath)
+    return new File(fullPath)
+  }
+
+  set text (text: string) {
     this.editor.setText(text)
     this.editor.moveToEndOfLine()
-    this.update({})
+    this.update()
     // input.selectToBeginningOfWord()
   }
 
-  get text () {
+  get text (): string {
     return this.editor.getText().trim()
   }
 
-  get element () {
-    return this.editor.editorElement
+  get element (): HTMLElement {
+    return this.editor.getElement()
   }
 
-  get entries () {
+  get entries (): Array<string> {
     let items = this.suggestions || []
     return items
   }
 
-  get component () {
+  get component (): any {
     return (
       <article className='path-field-container'>
 
         <nav ref={ref => ref && (this.breadcrumbs = ref)} />
-        <section ref={this.attach} />
+        <section ref={ref => ref && this.attach(ref)} />
 
         <List
           items={this.entries}
-          select={()=>console.warn('seletteed')}
+          select={() => console.warn('seletteed')}
           displayToggleButton={false}
         />
       </article>
@@ -104,7 +132,12 @@ export default class PathField {
     // </ol>
   }
 
-  updatePath (fragment='') {
+  popPath () {
+    if (this.path.length)
+      this.updatePath()
+  }
+
+  updatePath (fragment: string = '') {
     let text
     let fragments = fragment
       .split(separator)
@@ -141,29 +174,27 @@ export default class PathField {
     this.emitter.emit('did-update-breadcrumbs', this.path)
   }
 
-  updateList (...entries) {
+  updateList (...entries: Array<string>) {
     this.suggestions = entries
     this.emitter.emit('did-update-suggestions', this.suggestions)
   }
 
   @self
-  attach (host) {
+  attach (host: HTMLElement) {
     host.appendChild(this.element)
     this.element.focus()
   }
 
   focus () {
-    return this.editor.editorElement.focus()
+    return this.editor.getElement().focus()
   }
 
-  update ({ changes }) {
+  async update (state: UpdatePropertiesType): any {
     let text        = this.text
     let extension   = extname(text)
 
-    const path = (updates) => {
-      this.updatePath(updates)
-      this.emitter.emit('did-insert-separator', this.path)
-    }
+    if (!state)
+      return
 
     const ext = (extension) => {
       this.extension = extension
@@ -176,30 +207,33 @@ export default class PathField {
     const matchUp = content =>
       content.match(parent)
 
-    for (let { oldText, newText } of changes || []) {
+    for (let { oldText, newText } of state.changes || []) {
       if (matchUp(newText)) {
-        path()
+        this.popPath()
+        this.emitter.emit('did-remove-separator', this.path)
         break
       }
-      if (match(newText) && !match(oldText))
-        path(text)
+      if (match(newText) && !match(oldText)) {
+        this.updatePath(text)
+        this.emitter.emit('did-insert-separator', this.path)
+      }
     }
 
     if (this.extension !== extension)
       ext(extension)
   }
 
-  onDidUpdateSuggestions = callback => this.emitter.on('did-update-suggestions', callback)
-  onDidUpdateBreadcrumbs = callback => this.emitter.on('did-update-breadcrumbs', callback)
-  onDidInsertSeparator = callback => this.emitter.on('did-insert-separator', callback)
-  onDidChangeExtension = callback => this.emitter.on('did-change-extension', callback)
-  onNavigate = callback => this.emitter.on('move', callback)
-  onSubmit   = callback => this.emitter.on('submit', callback)
-  onCancel   = callback => this.emitter.on('cancel', callback)
+  onDidUpdateSuggestions  = (callback: () => Disposable) => this.emitter.on('did-update-suggestions', callback)
+  onDidUpdateBreadcrumbs  = (callback: () => Disposable) => this.emitter.on('did-update-breadcrumbs', callback)
+  onDidInsertSeparator    = (callback: () => Disposable) => this.emitter.on('did-insert-separator', callback)
+  onDidChangeExtension    = (callback: () => Disposable) => this.emitter.on('did-change-extension', callback)
+  onNavigate              = (callback: () => Disposable) => this.emitter.on('move', callback)
+  onSubmit                = (callback: () => Disposable) => this.emitter.on('submit', callback)
+  onCancel                = (callback: () => Disposable) => this.emitter.on('cancel', callback)
 
   destroy () {
     this.editor.destroy()
-    this.emitter.destroy()
+    this.emitter.dispose()
     this.subscriptions.dispose()
   }
 

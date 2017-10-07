@@ -6,6 +6,15 @@ import { Disposable } from 'atom'
 // import FileIcons from '../default-file-icons'
 
 
+
+export const getSelection = () => {
+  let { mainModule } = atom.packages.getLoadedPackage('tree-view') || {}
+  return (mainModule && mainModule.treeView)
+    ? mainModule.treeView.selectedPath
+    : null
+}
+
+
 export const isVisible = el =>
   el.getAttribute('style').search(IS_VISIBLE) > -1
 

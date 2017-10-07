@@ -1,8 +1,11 @@
 {
-  "name": "file-browser",
+  "name": "file-templates",
   "main": "./src/index.js",
   "version": "0.0.0",
   "description": "...",
+  "scripts": {
+    "doc": "documentation build ./src -o docs -f html --document-exported --config assets/documentation.yml"
+  },
   "keywords": [
     "panel",
     "layout",
@@ -23,10 +26,14 @@
   },
   "dependencies": {
     "autobind-decorator": "^2.1.0",
-    "eslint": "^3.19.0",
+    "eslint": "^4.7.2",
     "prop-types": "^15.5.10",
-    "react": "^15.6.1",
-    "react-dom": "^15.6.1"
+    "react": "16.0.0-alpha",
+    "react-dom": "16.0.0-alpha",
+    "babel-eslint": "^8.0.0",
+    "eslint-plugin-flow": "^2.29.1",
+    "eslint-plugin-react": "^7.3.0",
+    "flow-bin": "^0.54.1"
   },
   "providedServices": {
     "linter-ui": {
@@ -48,35 +55,38 @@
       }
     },
     "globals": {
-      "atom": true,
       "Promise": true,
-      "module": true,
-      "process": true,
+      "Proxy": true,
+      "WeakMap": true,
+      "WeakSet": true,
+      "Map": true,
+      "Set": true,
       "emit": true,
+      "atom": true,
+      "module": true,
+      "window": true,
+      "process": true,
       "require": true,
       "document": true,
-      "window": true,
-      "jQuery": true,
       "__dirname": true,
-      "__pathname": true,
-      "Proxy": true
+      "__pathname": true
     },
     "parser": "babel-eslint",
     "plugins": [
-      "react"
+      "react",
+      "flow"
     ],
     "extends": [
-      "eslint:recommended"
+      "eslint:recommended",
+      "plugin:react/recommended"
     ],
     "rules": {},
     "settings": {
       "react": {
         "pragma": "React",
-        "version": "15.3.1"
+        "version": "16.0.0"
       }
     }
   },
-  "devDependencies": {
-    "flow-bin": "^0.54.1"
-  }
+  "devDependencies": {}
 }

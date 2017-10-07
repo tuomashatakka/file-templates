@@ -37,8 +37,6 @@ export default class Dialog {
   }
 
   handleNavigationKey ({ amount, direction }) {
-    console.log(this) // FIXME: Remove
-
     if (direction === 'up')
       this.pageUp(amount)
     else if (direction === 'down')

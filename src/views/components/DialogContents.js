@@ -14,9 +14,7 @@ export default class DialogContents extends Component {
   }
 
   constructor (props) {
-
     super(props)
-
     this.state = {
       errors: [],
       listIsOpen: true,
@@ -32,7 +30,6 @@ export default class DialogContents extends Component {
         {errors.map(li)}
       </ul>
 
-    console.log(children)
     return (
       <div className='dialog-contents'>
         {errorsList}

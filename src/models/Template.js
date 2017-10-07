@@ -1,10 +1,17 @@
 'use babel'
+//@flow
+/**
+ * Template class definition
+ * @module template/Template
+ * @memberof templates
+ */
+
 
 import { CompositeDisposable } from 'atom'
 import { basename, extname } from 'path'
 import { unlink } from 'fs'
 
-import { templateManager } from '../templates'
+import { manager } from './TemplateManager'
 import { resolveIcon } from '../utils'
 import { placeholderQuery } from '../constants'
 import TemplateVariableAssignmentPanel from '../views/TemplateVariableAssignmentPanel'
@@ -12,9 +19,15 @@ import TemplateVariableMarker from './TemplateVariableMarker'
 
 
 
+/**
+ * Template instance represents a single file located under
+ * {@link file:///~/.atom/storage/file-templates/}
+ *
+ * @class
+ */
 export default class Template {
 
-  constructor ({ icon, path }) {
+  constructor ({ icon, path }: { icon: string | null, path: string | null }) {
     this.markers          = []
     this.consumedMarkers  = []
     this.extension        = extname(path)
@@ -44,11 +57,13 @@ export default class Template {
 
 
 
-  // Section: Populating the template
+  /** @namespace populating */
+
 
   /**
    * Get the status for the template variable assignment
-   * @method active
+   * @type property
+   * @memberof Template
    * @return {Bool}   `true` if the assignment is not finished
    *                  `false` otherwise
    */
@@ -144,6 +159,7 @@ export default class Template {
   /**
    * Assign an instance of a TextEditor for the Template
    * to be used in variable resolving & assignment
+   *
    * @method apply
    * @param  {TextEditor} textEditor The editor with the template file open
    */
@@ -176,33 +192,34 @@ export default class Template {
 
 
 
-  // Section: File IO & text content handling
-
   /**
    * Get the filesystem's File instance for the template file
-   * @method file
+   *
+   * @member file
    * @return {File} The file related to the calling template
    *                instance
    */
   get file () {
-    return templateManager().get(this.path)
+    return manager.getFile(this.path)
   }
 
   /**
-   * Get the contents for the
-   * template file as a raw text
-   * (asynchronously)
-   * @method content
+   * (async) Get the contents for the template file as a raw text
+   *
+   * @member content
    * @return {Promise}  A Promise providing the
    *                    file contents upon resolution
    */
   get content () {
-    let template = this
     let content  = ''
+    let template = this
     let { file } = this
 
     if(file)
-      return cb => file.read().then(content => cb({ content, template }))
+      return cb => file
+        .read()
+        .then(content =>
+          cb({ content, template }))
 
     return cb => cb({ content, template })
   }

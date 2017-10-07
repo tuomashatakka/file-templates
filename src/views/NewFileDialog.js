@@ -1,13 +1,11 @@
 'use babel'
+
 import React from 'react'
 import { render } from 'react-dom'
-import { Disposable, CompositeDisposable, Directory } from 'atom'
-import { join, sep } from 'path'
+import { Disposable, CompositeDisposable } from 'atom'
 import PathField from '../models/PathField'
-import { existsSync } from 'fs'
 import { dir } from '../utils'
-import { templateManager } from '../templates'
-import { getTemplates, getNullTemplateItem, compareTemplates } from '../templates'
+import { manager } from '../models/TemplateManager'
 import Template from '../models/Template'
 import Toolbar from './components/ToolbarComponent'
 import List from './components/ListComponent'
@@ -25,8 +23,7 @@ export default class Dialog extends BaseDialog {
     this.className     = `filepath-prompt modal-${this.name}`
     this.subscriptions = new CompositeDisposable()
 
-    this.templates.add('index_with_content.js', 'kikki hiir on [[pelle]]')
-    this.render()
+    // manager.add('index_with_content.js', 'kikki hiir on [[pelle]]')
 
     const navigateTemplatesList = direction => {
       if (direction === 'down')
@@ -41,6 +38,9 @@ export default class Dialog extends BaseDialog {
     input.onCancel(this.hide.bind(this))
     input.onDidUpdateSuggestions(this.render.bind(this))
     input.onDidChangeExtension(this.getTemplatesByExtension.bind(this))
+
+
+    this.render()
   }
 
   getTitle = () => this.name
@@ -49,6 +49,7 @@ export default class Dialog extends BaseDialog {
     this.errors = []
     this.selectedTemplate = null
     this.panel.show()
+    console.info("selectedTemplate", this.selectedTemplate, this)
   }
 
   hide () {
@@ -96,28 +97,32 @@ export default class Dialog extends BaseDialog {
     this.component.setState({ errors: this.errors })
   }
 
-  submit () {
+  async submit () {
     this.errors = []
-    let path = this.absoluteValue
+    let vn = this.input.serialize()
 
-    if (path && path[0] !== sep)
-      path = join(atom.project.getPaths()[0], path)
+    let open = () => {
+      if (vn.isFile())
+        atom.workspace.open(vn.getRealPathSync())
+      else if (vn.isDirectory()) {
+        vn.create()
+        this.panel.hide()
+      }
+    }
 
     try {
 
       // If the given path already exists, do not overwrite it
       // but rather display an error.
-      if (existsSync(path)) {
-        this.addError(`${path} already exists`)
-        if (!path.endsWith(sep))
-          atom.workspace.open(path)
+      if (vn.existsSync()) {
+        this.addError(`${vn.path} already exists`)
+        open()
       }
 
       // If the input ends with a path separator, create a new
       // directory to the given location.
-      else if (path.endsWith(sep)) {
-        (new Directory(path)).create()
-        this.panel.hide()
+      else if (vn.isDirectory()) {
+        open()
       }
 
       // If the input evaluates to a filename (it does not end
@@ -125,15 +130,13 @@ export default class Dialog extends BaseDialog {
       // the given input as the path for the item. If a template
       // is selected, apply it to the newly opened pane item.
       else {
-
-        let resolver = atom.workspace.open(path)
-        if (this.selectedTemplate)
-          resolver.then(editor =>
-            this.selectedTemplate ?
-            this.selectedTemplate.apply(editor) : null)
-
+        let resolver = atom.workspace.open(vn.path)
+        if (this.selectedTemplate) {
+          let editor = await resolver
+          this.selectedTemplate.apply(editor)
+          console.info("selectedTemplate", this.selectedTemplate)
+        }
         this.panel.hide()
-        // this.panel.destroy()
       }
     }
 
@@ -143,13 +146,13 @@ export default class Dialog extends BaseDialog {
   }
 
   get templates () {
-    return templateManager()
+    return manager
   }
 
   getTemplatesByExtension (ext='') {
     let items = []
     if (ext.length > 1)
-      items = this.templates.getByExtension(ext)
+      items = manager.getByExtension(ext)
     this.input.updateList(...items)
   }
 
@@ -168,7 +171,7 @@ export default class Dialog extends BaseDialog {
 
   selectNextTemplate () {
     let { path } = this.selectedTemplate
-    let pos = this.templates.all.findIndex(item => item.path == path)
+    let pos = manager.all.findIndex(item => item.path == path)
     if (pos === -1 && path)
       return this.setTemplate(null)
     return this.selectTemplateByPosition(pos + 1)
@@ -176,14 +179,14 @@ export default class Dialog extends BaseDialog {
 
   selectPreviousTemplate () {
     let { path } = this.selectedTemplate
-    let pos = this.templates.all.findIndex(o => o.path == path)
+    let pos = manager.all.findIndex(o => o.path == path)
     if (pos < 1 || !path)
       return this.setTemplate(null)
     return this.selectTemplateByPosition(pos - 1)
   }
 
   selectTemplateByPosition (pos) {
-    let item = this.templates.getByPosition(pos)
+    let item = manager.getByPosition(pos)
     return this.setTemplate(item)
   }
 
@@ -204,7 +207,7 @@ export default class Dialog extends BaseDialog {
   }
 
   render () {
-    let onSelect = (item) => this.setTemplate(item)
+    let onSelect = (item) => this.setTemplate(item.path === null ? null : item)
     let buttons   = [
       { text: 'Cancel',   action: () => this.hide() },
       { text: 'Save',     action: () => this.submit(), style: 'success' },

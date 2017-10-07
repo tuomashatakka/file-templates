@@ -1,28 +1,25 @@
 'use babel'
+/**
+ * Common template functions
+ *
+ * @module templates
+ */
 
+
+import { statSync } from 'fs'
 import { Directory, File } from 'atom'
-import { join, extname } from 'path'
-import Template from './models/Template'
-import { TMPL_DIR_NAME } from './constants'
+import { join, extname, basename } from 'path'
+import { TMPL_DIR_NAME } from '../constants'
+import Template from './Template'
 
-const ftype = path => statSync(path) ? 'file' : 'file-directory'
 
-const formatTemplate = ({ path }) => ({
+export const formatTemplate = ({ path }) => ({
   path,
   icon:     ftype(path),
   type:     extname(path)  || 'directory',
   name:     basename(path) || 'unnamed',
   template: new Template({ path, icon: ftype(path) }),
   selected: () => false })
-
-const formatEntries = entries =>
-  entries.map(formatTemplate)
-
-export const getTemplates = (filter=()=>true) =>
-  templateManager().all.filter(filter)
-
-export const compareTemplates = (a, b) =>
-  a && b && a.path === b.path
 
 export const getNullTemplateItem = selected => ({
   name: 'No template',
@@ -32,14 +29,18 @@ export const getNullTemplateItem = selected => ({
   selected: (typeof selected === 'function' ? selected() : selected) || false
 })
 
+const ftype = path => statSync(path) ? 'file' : 'file-directory'
+
+export const getTemplates = (filter=()=>true) => manager.all.filter(filter)
+
+export const compareTemplates = (a, b) => a && b && a.path === b.path
 
 let _entries, _cached
 
 
-export default class TemplateInterface {
+export default class TemplateManager {
 
-  constructor () {
-    const dirname   = 'file-templates'
+  constructor (dirname=TMPL_DIR_NAME) {
     const path      = join(atom.getStorageFolder().getPath(), dirname)
     this.directory  = getDirectory(path)
   }
@@ -113,6 +114,8 @@ export default class TemplateInterface {
 
 }
 
+export let manager = new TemplateManager()
+
 
 function templateForEntry (entry) {
   let { path } = entry
@@ -124,16 +127,10 @@ function templateForEntry (entry) {
   return new Template({ path, icon })
 }
 
+
 function getDirectory (path) {
   let dir = new Directory(path)
   dir.exists().then(exists =>
     !exists && dir.create())
   return dir
 }
-
-
-let templateInterface
-export const templateManager = () =>
-  templateInterface
-  ? templateInterface
-  : templateInterface = new TemplateInterface()
