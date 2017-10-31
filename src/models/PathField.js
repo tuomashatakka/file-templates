@@ -9,9 +9,10 @@ import {
 
 import React from 'react'
 import self from 'autobind-decorator'
-import { extname, sep } from 'path'
+import { extname, basename, sep } from 'path'
 import DisposableEvent from './DisposableEvent'
 import List from '../views/components/ListComponent'
+import DynamicDirectory from './Directory'
 import type { Direction, UpdatePropertiesType } from '../../types/generic.type'
 const _sep      = /(?:([/\\]+))/
 const _parent   = /^([^.]*?\.{2,})/
@@ -32,12 +33,6 @@ export default class PathField {
 
   constructor (path: string = '') {
 
-    this.subscriptions = new CompositeDisposable()
-    this.editor        = new TextEditor({ mini: true })
-    this.emitter       = new Emitter()
-    this.extension     = extname(path)
-    this.path          = resolvePath(path)
-
     const onBackspace = () => this.popPath()
     const core = (name, handle: Function, el: HTMLElement) => {
       let element = el || this.element
@@ -46,17 +41,31 @@ export default class PathField {
       // return false
       return new DisposableEvent(element, 'core:' + name, handler.bind(this))
     }
-    this.update()
-    let sub: Disposable = this.editor.onDidStopChanging.call(this.editor, this.update.bind(this))
     let cnfrm = e => {
       if (e)
         e.preventDefault()
       this.confirm()
       return false
     }
+
+    this.subscriptions = new CompositeDisposable()
+    this.editor        = new TextEditor({ mini: true })
+    this.emitter       = new Emitter()
+    this.extension     = extname(path)
+    this.path          = resolvePath(path)
+    this.currentDirectory = new DynamicDirectory(this.serialize())
+
+    this.update().then(() => {
+      this.currentDirectory = new DynamicDirectory(this.serialize())
+    })
+
+    let sub: Disposable = this.editor.onDidStopChanging.call(this.editor, this.update.bind(this))
     let observeBackspace = new DisposableEvent(this.element, 'keydown', ev => {
-      if (ev.key === 'Backspace' && !this.text.length)
+      if (ev.key === 'Backspace' && this.empty) {
+        ev.preventDefault()
         onBackspace()
+        return false
+      }
     })
 
     this.subscriptions.add(
@@ -70,6 +79,8 @@ export default class PathField {
       observeBackspace
     )
   }
+
+  get empty () { return this.text.length === 0 }
 
   navigate = (direction: Direction) => this.emitter.emit('move', direction)
   confirm  = () => this.emitter.emit('submit', this.serialize())
@@ -85,13 +96,17 @@ export default class PathField {
   }
 
   serialize () {
-    let fullPath = atom.project.resolvePath(this.getFullPath())
+    let raw = this.getFullPath()
+    let fullPath = atom.project.resolvePath(raw)
+    console.warn(raw, fullPath)
     if (fullPath.endsWith(sep))
       return new Directory(fullPath)
     return new File(fullPath)
   }
 
-  set text (text: string) {
+  set text (text: string = '') {
+    if (typeof text !== 'string')
+      throw new TypeError(`PathField.text setter takes only string parameters. Got ${typeof text} instead.`)
     this.editor.setText(text)
     this.editor.moveToEndOfLine()
     this.update()
@@ -112,7 +127,7 @@ export default class PathField {
   }
 
   get component (): any {
-    return (
+    return this._component || (this._component =
       <article className='path-field-container'>
 
         <nav ref={ref => ref && (this.breadcrumbs = ref)} />
@@ -121,6 +136,7 @@ export default class PathField {
         <List
           items={this.entries}
           select={() => console.warn('seletteed')}
+          onDidChange={fn => this.onDidUpdateSuggestions(fn)}
           displayToggleButton={false}
         />
       </article>
@@ -171,14 +187,23 @@ export default class PathField {
     this.text = text
     this.breadcrumbs.innerHTML = ''
     this.path.forEach(path => createPathFragment(path))
+    this.currentDirectory.setPath(this.serialize())
     this.emitter.emit('did-update-breadcrumbs', this.path)
+    this.emitter.emit('did-update', this.currentDirectory)
   }
 
   updateList (...entries: Array<string>) {
-    this.suggestions = entries
+    this.suggestions = this.currentDirectory.filenames.map(name => ({
+      name,
+    }))
     this.emitter.emit('did-update-suggestions', this.suggestions)
   }
 
+  // updateList (...entries: Array<string>) {
+  //   this.suggestions = entries
+  //   this.emitter.emit('did-update-suggestions', this.suggestions)
+  // }
+  //
   @self
   attach (host: HTMLElement) {
     host.appendChild(this.element)
@@ -189,7 +214,7 @@ export default class PathField {
     return this.editor.getElement().focus()
   }
 
-  async update (state: UpdatePropertiesType): any {
+  async update (state: UpdatePropertiesType): Promise<any> {
     let text        = this.text
     let extension   = extname(text)
 
@@ -223,6 +248,7 @@ export default class PathField {
       ext(extension)
   }
 
+  onDidUpdate             = (callback: () => Disposable) => this.emitter.on('did-update', callback)
   onDidUpdateSuggestions  = (callback: () => Disposable) => this.emitter.on('did-update-suggestions', callback)
   onDidUpdateBreadcrumbs  = (callback: () => Disposable) => this.emitter.on('did-update-breadcrumbs', callback)
   onDidInsertSeparator    = (callback: () => Disposable) => this.emitter.on('did-insert-separator', callback)

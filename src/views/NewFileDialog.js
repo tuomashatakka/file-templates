@@ -37,7 +37,7 @@ export default class Dialog extends BaseDialog {
     // input.onSubmit(this.submit.bind(this))
     input.onCancel(this.hide.bind(this))
     input.onDidUpdateSuggestions(this.render.bind(this))
-    input.onDidChangeExtension(this.getTemplatesByExtension.bind(this))
+    input.onDidUpdate(this.getTemplatesByExtension.bind(this))
 
 
     this.render()

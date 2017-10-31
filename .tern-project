@@ -4,10 +4,10 @@
     "browser"
   ],
   "loadEagerly": [
-    "src/**"
+    "src/**/*.js"
   ],
   "dontLoad": [
-    "node_module/**"
+    "node_modules"
   ],
   "plugins": {
     "doc_comment": true,

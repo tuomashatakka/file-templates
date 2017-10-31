@@ -7,10 +7,32 @@ import { Disposable } from 'atom'
 
 
 
-export const getSelection = () => {
-  let { mainModule } = atom.packages.getLoadedPackage('tree-view') || {}
-  return (mainModule && mainModule.treeView)
-    ? mainModule.treeView.selectedPath
+export const getSelection = () =>
+  dirname(
+    getSelectedTreeViewPath() ||
+    getOpenEditorPath() ||
+    getProjectRootPath()
+  )
+
+function getSelectedTreeViewPath () {
+  let tree = atom.packages.getLoadedPackage('tree-view')
+  let main = tree && tree.mainModule
+  return (main && main.treeView)
+    ? main.treeView.selectedPath
+    : null
+}
+
+function getProjectRootPath () {
+  let paths = atom.project.getPaths()
+  return paths.length 
+    ? paths.shift()
+    : null
+}
+
+function getOpenEditorPath () {
+  let editor = atom.workspace.getActiveTextEditor()
+  return (editor && editor.getPath)
+    ? editor.getPath()
     : null
 }
 
