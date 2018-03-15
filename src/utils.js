@@ -8,11 +8,11 @@ import { Disposable } from 'atom'
 
 
 export const getSelection = () =>
-  dirname(
+  // dirname(
     getSelectedTreeViewPath() ||
     getOpenEditorPath() ||
     getProjectRootPath()
-  )
+  // )
 
 function getSelectedTreeViewPath () {
   let tree = atom.packages.getLoadedPackage('tree-view')
@@ -24,7 +24,7 @@ function getSelectedTreeViewPath () {
 
 function getProjectRootPath () {
   let paths = atom.project.getPaths()
-  return paths.length 
+  return paths.length
     ? paths.shift()
     : null
 }

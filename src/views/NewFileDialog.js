@@ -137,6 +137,8 @@ export default class Dialog extends BaseDialog {
   set selectedTemplate (item) { this._selectedTemplate = item || null }
 
   selectNextTemplate () {
+    if (manager.all.length === 0)
+      return
     let { path } = this.selectedTemplate
     let pos = manager.all.findIndex(item => item.path === path)
     if (pos === -1 && path)
@@ -145,6 +147,8 @@ export default class Dialog extends BaseDialog {
   }
 
   selectPreviousTemplate () {
+    if (manager.all.length === 0)
+      return
     let { path } = this.selectedTemplate
     let pos = manager.all.findIndex(o => o.path === path)
     if (pos < 1 || !path)

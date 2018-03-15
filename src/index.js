@@ -8,12 +8,12 @@ export default {
 
   subscriptions: null,
 
-  activate(/*state={}*/) {
+  activate () {
     this.subscriptions = new CompositeDisposable()
     this.subscriptions.add(subscribe())
   },
 
-  deactivate() {
+  deactivate () {
     this.subscriptions.dispose()
   }
 }

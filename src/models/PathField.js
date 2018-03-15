@@ -123,6 +123,7 @@ export default class PathField {
 
   get entries (): Array<string> {
     let items = this.suggestions || []
+    console.log('entries', items)
     return items
   }
 
@@ -135,7 +136,10 @@ export default class PathField {
 
         <List
           items={this.entries}
-          select={() => console.warn('seletteed')}
+          select={(item) => {
+            console.warn('seletteed', item)
+            this.updatePath(item.name)
+          }}
           onDidChange={fn => this.onDidUpdateSuggestions(fn)}
           displayToggleButton={false}
         />
@@ -193,9 +197,10 @@ export default class PathField {
   }
 
   updateList (...entries: Array<string>) {
-    this.suggestions = this.currentDirectory.filenames.map(name => ({
+    this.suggestions = this.currentDirectory.dirnames.map(name => ({
       name,
     }))
+    console.log("this.suggestions", this.suggestions)
     this.emitter.emit('did-update-suggestions', this.suggestions)
   }
 

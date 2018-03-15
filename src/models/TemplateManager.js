@@ -41,7 +41,7 @@ let _entries, _cached
 export default class TemplateManager {
 
   constructor (dirname=TMPL_DIR_NAME) {
-    const path      = join(atom.getStorageFolder().getPath(), dirname)
+    const path      = join(atom.configDirPath, 'storage', dirname)
     this.directory  = getDirectory(path)
   }
 

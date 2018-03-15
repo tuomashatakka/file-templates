@@ -26,6 +26,11 @@ export default class Directory {
     return this.files.map(map)
   }
 
+  get dirnames () {
+    let map = (dir) => basename(dir.path)
+    return this.directories.map(map)
+  }
+
   get files () {
     if (!this._files)
       this._files = this.ls.filter(isFile)
@@ -44,8 +49,16 @@ export default class Directory {
   get ls () {
     if (!this._items) {
       let toAbsolutePath = (item) => resolve(this.path, item)
-      let items = this._items || readdirSync(this.path)
-      this._items = items.map(toAbsolutePath)
+
+      try {
+        let items = this._items || readdirSync(this.path)
+        this._items = items.map(toAbsolutePath)
+      }
+      catch(error) {
+        // TODO: Better error handling
+        console.warn(error)
+        return this._items || []
+      }
     }
     return this._items
   }
